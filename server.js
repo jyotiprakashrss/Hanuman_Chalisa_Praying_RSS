@@ -179,7 +179,7 @@ app.get('/admin/devotees', (req, res) => {
 
 // 3. One-Click CSV Download Route for Excel/Google Sheets
 app.get('/admin/export', (req, res) => {
-    if (req.query.passcode !== ADMIN_PASSWORD) {
+    if (req.query.admin_password !== ADMIN_PASSWORD) {
         return res.status(403).send('Access Denied');
     }
 
