@@ -56,79 +56,7 @@ app.post('/api/register', (req, res) => {
     });
 });
 
-// Admin API Endpoint to view all registered devotees in JSON format
-app.get('/api/devotees', (req, res) => {
-    db.all(`SELECT * FROM registrants ORDER BY created_at DESC`, [], (err, rows) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json(rows);
-    });
-});
-
-// Simple Admin View route to see a list and quick WhatsApp buttons
-app.get('/admin', (req, res) => {
-    db.all(`SELECT * FROM registrants ORDER BY created_at DESC`, [], (err, rows) => {
-        if (err) {
-            return res.status(500).send('Database error.');
-        }
-
-        let html = `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>Admin Dashboard - Devotees</title>
-            <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f4f4; padding: 30px; }
-                h1 { color: #b71c1c; }
-                table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-                th, td { padding: 12px 15px; border: 1px solid #ddd; text-align: left; }
-                th { background-color: #ff6f00; color: white; }
-                tr:nth-child(even) { background-color: #f9f9f9; }
-                .wa-btn { background: #25d366; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; }
-                .wa-btn:hover { background: #1ebe5d; }
-            </style>
-        </head>
-        <body>
-            <h1>🙏 Registered Devotees Dashboard</h1>
-            <p>Total Registrations: <strong>${rows.length}</strong></p>
-            <table>
-                <tr>
-                    <th>ID</th>
-                    <th>Full Name</th>
-                    <th>Gender</th>
-                    <th>WhatsApp Number</th>
-                    <th>State</th>
-                    <th>Registration Time</th>
-                    <th>Action</th>
-                </tr>`;
-
-        rows.forEach(row => {
-            // Format WhatsApp Direct Link
-            const waLink = `https://wa.me/91${row.phoneNumber}?text=Jai%20Shri%20Ram,%20${encodeURIComponent(row.fullName)}!%20Thank%20you%20for%20registering%20for%20the%20Hanuman%20Chalisha%20temple%20prayer.`;
-            html += `<tr>
-                <td>${row.id}</td>
-                <td>${row.fullName}</td>
-                <td>${row.gender || 'N/A'}</td>
-                <td>${row.phoneNumber}</td>
-                <td>${row.stateLocation}</td>
-                <td>${row.created_at}</td>
-                <td><a class="wa-btn" href="${waLink}" target="_blank">Chat on WhatsApp</a></td>
-            </tr>`;
-        });
-
-        html += `</table></body></html>`;
-        res.send(html);
-    });
-});
-
-app.listen(PORT, () => {
-    console.log(`Server is running live at: http://localhost:${PORT}`);
-    console.log(`Admin dashboard available at: http://localhost:${PORT}/admin`);
-});
-
-// 2. Program Leader Admin Dashboard Route
+// 1. Program Leader Admin Dashboard Route (Password Protected)
 app.get('/admin/devotees', (req, res) => {
     if (req.query.admin_password !== ADMIN_PASSWORD) {
         return res.status(403).send('<h3>Access Denied.</h3><p>Please check your admin password.</p>');
@@ -136,39 +64,59 @@ app.get('/admin/devotees', (req, res) => {
 
     db.all(`SELECT * FROM registrants ORDER BY id DESC`, [], (err, rows) => {
         if (err) {
+            console.error(err.message);
             return res.status(500).send('Error reading database.');
         }
 
-        let tableRows = rows.map(r => `
-            <tr>
-                <td>${r.id}</td>
-                <td>${r.fullName || ''}</td>
-                <td>${r.gender || ''}</td>
-                <td><a href="tel:${r.phoneNumber}">${r.phoneNumber || ''}</a></td>
-                <td>${r.stateLocation || ''}</td>
-            </tr>
-        `).join('');
+        let tableRows = rows.map(row => {
+            const waLink = `https://wa.me/91${row.phoneNumber}?text=Jai%20Shri%20Ram,%20${encodeURIComponent(row.fullName)}!%20Thank%20you%20for%20registering%20for%20the%20Hanuman%20Chalisha%20temple%20prayer.`;
+            return `
+                <tr>
+                    <td>${row.id}</td>
+                    <td>${row.fullName || ''}</td>
+                    <td>${row.gender || 'N/A'}</td>
+                    <td><a href="tel:${row.phoneNumber}">${row.phoneNumber || ''}</a></td>
+                    <td>${row.stateLocation || ''}</td>
+                    <td>${row.created_at || ''}</td>
+                    <td><a class="wa-btn" href="${waLink}" target="_blank">Chat on WhatsApp</a></td>
+                </tr>
+            `;
+        }).join('');
 
         res.send(`
             <!DOCTYPE html>
-            <html>
+            <html lang="en">
             <head>
+                <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1">
-                <title>Devotee List - Admin</title>
+                <title>Admin Dashboard - Devotees</title>
                 <style>
-                    body { font-family: Arial, sans-serif; padding: 16px; background: #fdfaf6; }
-                    h2 { color: #b44300; }
-                    .btn { display: inline-block; padding: 10px 16px; background: #b44300; color: #fff; text-decoration: none; border-radius: 5px; margin-bottom: 15px; }
-                    table { width: 100%; border-collapse: collapse; background: #fff; }
-                    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-                    th { background: #f4e4d7; }
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fdfaf6; padding: 20px; }
+                    h1 { color: #b71c1c; margin-bottom: 5px; }
+                    .btn { display: inline-block; padding: 10px 16px; background: #b44300; color: #fff; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 10px 0 20px 0; }
+                    .btn:hover { background: #8f3500; }
+                    table { width: 100%; border-collapse: collapse; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+                    th, td { padding: 12px 15px; border: 1px solid #ddd; text-align: left; }
+                    th { background-color: #ff6f00; color: white; }
+                    tr:nth-child(even) { background-color: #f9f9f9; }
+                    .wa-btn { background: #25d366; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block; }
+                    .wa-btn:hover { background: #1ebe5d; }
                 </style>
             </head>
             <body>
-                <h2>Registered Devotees (${rows.length})</h2>
+                <h1>🙏 Registered Devotees Dashboard</h1>
+                <p>Total Registrations: <strong>${rows.length}</strong></p>
                 <a class="btn" href="/admin/export?admin_password=${ADMIN_PASSWORD}">Download Excel / CSV</a>
                 <table>
-                    <tr><th>#</th><th>Name</th><th>Gender</th><th>Phone</th><th>Location</th></tr>
+                    <tr>
+                        <th>ID</th>
+                        <th>Full Name</th>
+                        <th>Gender</th>
+                        <th>Phone Number</th>
+                        <th>Location</th>
+                        <th>Registration Time</th>
+                        <th>Action</th>
+                    </tr>
                     ${tableRows}
                 </table>
             </body>
@@ -177,18 +125,21 @@ app.get('/admin/devotees', (req, res) => {
     });
 });
 
-// 3. One-Click CSV Download Route for Excel/Google Sheets
+// 2. One-Click CSV Download Route for Excel/Google Sheets (Password Protected)
 app.get('/admin/export', (req, res) => {
     if (req.query.admin_password !== ADMIN_PASSWORD) {
-        return res.status(403).send('Access Denied');
+        return res.status(403).send('Access Denied.');
     }
 
-    db.all(`SELECT * FROM devotees ORDER BY id ASC`, [], (err, rows) => {
-        if (err) return res.status(500).send('Database error');
+    db.all(`SELECT * FROM registrants ORDER BY id ASC`, [], (err, rows) => {
+        if (err) {
+            console.error(err.message);
+            return res.status(500).send('Database error.');
+        }
 
-        let csv = 'ID,Full Name,Gender,Phone Number,Location\n';
+        let csv = 'ID,Full Name,Gender,Phone Number,Location,Registration Time\n';
         rows.forEach(r => {
-            csv += `"${r.id}","${(r.fullName || '').replace(/"/g, '""')}","${r.gender || ''}","${r.phoneNumber || ''}","${(r.stateLocation || '').replace(/"/g, '""')}"\n`;
+            csv += `"${r.id}","${(r.fullName || '').replace(/"/g, '""')}","${r.gender || ''}","${r.phoneNumber || ''}","${(r.stateLocation || '').replace(/"/g, '""')}","${r.created_at || ''}"\n`;
         });
 
         res.header('Content-Type', 'text/csv');
@@ -197,8 +148,7 @@ app.get('/admin/export', (req, res) => {
     });
 });
 
-// CRITICAL FOR RENDER: Listen on 0.0.0.0 and dynamic process.env.PORT
-//const PORT = process.env.PORT || 3000;
+// Start Server bound properly to 0.0.0.0 for Render
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running live on port ${PORT}`);
 });
