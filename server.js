@@ -5,14 +5,15 @@ const cors = require('cors');
 
 const app = express();
 app.use(cors());
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Subhakanta_1'; // Change this in production for security
 
 // Middleware to parse JSON and form data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files (your index.html and images) from the current folder
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, '.')));
 
 // Initialize SQLite Database (creates a file named 'devotees.db')
 const db = new sqlite3.Database('./devotees.db', (err) => {
@@ -125,4 +126,79 @@ app.get('/admin', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running live at: http://localhost:${PORT}`);
     console.log(`Admin dashboard available at: http://localhost:${PORT}/admin`);
+});
+
+// 2. Program Leader Admin Dashboard Route
+app.get('/admin/devotees', (req, res) => {
+    if (req.query.passcode !== ADMIN_PASSCODE) {
+        return res.status(403).send('<h3>Access Denied.</h3><p>Please check your passcode link.</p>');
+    }
+
+    db.all(`SELECT * FROM devotees ORDER BY id DESC`, [], (err, rows) => {
+        if (err) {
+            return res.status(500).send('Error reading database.');
+        }
+
+        let tableRows = rows.map(r => `
+            <tr>
+                <td>${r.id}</td>
+                <td>${r.fullName || ''}</td>
+                <td>${r.gender || ''}</td>
+                <td><a href="tel:${r.phoneNumber}">${r.phoneNumber || ''}</a></td>
+                <td>${r.stateLocation || ''}</td>
+            </tr>
+        `).join('');
+
+        res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>Devotee List - Admin</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 16px; background: #fdfaf6; }
+                    h2 { color: #b44300; }
+                    .btn { display: inline-block; padding: 10px 16px; background: #b44300; color: #fff; text-decoration: none; border-radius: 5px; margin-bottom: 15px; }
+                    table { width: 100%; border-collapse: collapse; background: #fff; }
+                    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                    th { background: #f4e4d7; }
+                </style>
+            </head>
+            <body>
+                <h2>Registered Devotees (${rows.length})</h2>
+                <a class="btn" href="/admin/export?passcode=${ADMIN_PASSWORD}">Download Excel / CSV</a>
+                <table>
+                    <tr><th>#</th><th>Name</th><th>Gender</th><th>Phone</th><th>Location</th></tr>
+                    ${tableRows}
+                </table>
+            </body>
+            </html>
+        `);
+    });
+});
+
+// 3. One-Click CSV Download Route for Excel/Google Sheets
+app.get('/admin/export', (req, res) => {
+    if (req.query.passcode !== ADMIN_PASSWORD) {
+        return res.status(403).send('Access Denied');
+    }
+
+    db.all(`SELECT * FROM devotees ORDER BY id ASC`, [], (err, rows) => {
+        if (err) return res.status(500).send('Database error');
+
+        let csv = 'ID,Full Name,Gender,Phone Number,Location\n';
+        rows.forEach(r => {
+            csv += `"${r.id}","${(r.fullName || '').replace(/"/g, '""')}","${r.gender || ''}","${r.phoneNumber || ''}","${(r.stateLocation || '').replace(/"/g, '""')}"\n`;
+        });
+
+        res.header('Content-Type', 'text/csv');
+        res.attachment('hanuman-chalisa-devotees.csv');
+        res.send(csv);
+    });
+});
+
+// CRITICAL FOR RENDER: Listen on 0.0.0.0 and dynamic process.env.PORT
+//const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running live on port ${PORT}`);
 });
