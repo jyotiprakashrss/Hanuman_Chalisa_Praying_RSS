@@ -130,8 +130,8 @@ app.listen(PORT, () => {
 
 // 2. Program Leader Admin Dashboard Route
 app.get('/admin/devotees', (req, res) => {
-    if (req.query.passcode !== ADMIN_PASSCODE) {
-        return res.status(403).send('<h3>Access Denied.</h3><p>Please check your passcode link.</p>');
+    if (req.query.admin_password !== ADMIN_PASSWORD) {
+        return res.status(403).send('<h3>Access Denied.</h3><p>Please check your admin password.</p>');
     }
 
     db.all(`SELECT * FROM devotees ORDER BY id DESC`, [], (err, rows) => {
@@ -166,7 +166,7 @@ app.get('/admin/devotees', (req, res) => {
             </head>
             <body>
                 <h2>Registered Devotees (${rows.length})</h2>
-                <a class="btn" href="/admin/export?passcode=${ADMIN_PASSWORD}">Download Excel / CSV</a>
+                <a class="btn" href="/admin/export?admin_password=${ADMIN_PASSWORD}">Download Excel / CSV</a>
                 <table>
                     <tr><th>#</th><th>Name</th><th>Gender</th><th>Phone</th><th>Location</th></tr>
                     ${tableRows}
