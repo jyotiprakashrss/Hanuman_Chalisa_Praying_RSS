@@ -134,7 +134,7 @@ app.get('/admin/devotees', (req, res) => {
         return res.status(403).send('<h3>Access Denied.</h3><p>Please check your admin password.</p>');
     }
 
-    db.all(`SELECT * FROM devotees ORDER BY id DESC`, [], (err, rows) => {
+    db.all(`SELECT * FROM registrants ORDER BY id DESC`, [], (err, rows) => {
         if (err) {
             return res.status(500).send('Error reading database.');
         }
